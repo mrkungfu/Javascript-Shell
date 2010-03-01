@@ -1,0 +1,286 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+	<head>
+		<title>Test</title>
+
+    <script type="text/javascript">	
+<!--
+//Setup Event Handlers
+document.onkeydown = checkKeycode;
+document.onkeyup = clearModifier;
+
+//WIP - handler check for Caps lock...
+document.onkeypress = function(e) {
+	var ev = e ? e : window.event;
+	if (!ev) {
+		return;
+	}
+	var targ = ev.target ? ev.target : ev.srcElement;
+	// get key pressed
+	var which = -1;
+	if (ev.which) {
+		which = ev.which;
+	} else if (ev.keyCode) {
+		which = ev.keyCode;
+	}
+	
+	// At this point, you have the ASCII code in "which", 
+	// and shift_status is true if the shift key is pressed
+	if (((which >= 65 && which <= 90) && !modifier.shift) || 
+	((which >= 97 && which <= 122) && modifier.shift)) {
+		// uppercase, no shift key
+		/* SHOW THE WARNING HERE */
+	} else {
+		/* HIDE THE WARNING HERE */
+	}
+
+	var char = String.fromCharCode(which);
+	if(char.toLowerCase() == char)
+	 var is_lower_case = true;
+	if(char.toUpperCase() == char)
+	 var is_upper_case = true;
+}
+
+//Global settings
+// - wrap
+// - keyboard type
+// - history size
+shell_settings = {
+	wrap: true,
+	keyboard: "default",
+	historySize: 500,
+	prompt: "mrkungfu$ "
+}
+
+//Global variables
+// - history array
+// - command
+shell_variables = {
+	history: false,//array - last object is most recent
+	command: "",//text of command
+	pwd: "//"//DOM path?
+};
+
+//Track modifier keys with this object
+//(if initialized all to off - state should remain consistent
+//	given seperate handling of keydown and key up. only remaining
+//  corner case is if shift was pressed when page is broght to
+//  focus)
+modifier = {
+	shift: false,
+	control: false,
+	xalt: false,
+	command: false
+	//capslock: false?,
+};
+
+function shellInit() {
+	//modifier.shift = false;
+	//modifier.control = false;
+	//modifier.xalt = false;
+	//modifier.command = false;
+	//modifier.capslock = false;
+	
+	//set global settings per default/cookie
+	 //shell_settings.prompt = "mrkungfu$ ";
+	
+	//set global variables per default/cookie
+	 //shell_variables.command = "";
+	 //shell_variables.pwd = "//";
+	
+	//set focus
+	window.focus();
+}
+
+function checkKeycode(e) {
+//console.log("down");
+  var keycode;
+  if (window.event) { //IE, ?
+    keycode = window.event.keyCode;
+  } else if (e) { //FF, ?
+    keycode = e.which;
+  }
+
+  //optional validation?
+  //should break this out for keyboard type
+  switch(keycode) {
+   case 16: //shift
+     modifier.shift = true;
+     break;
+   case 17: //control
+     modifier.control = true;
+     break;
+   case 18: //alt
+     modifier.xalt = true;
+     break;
+   case 91: //command/windows
+   case 93:
+     modifier.command = true;
+     break;
+   case 13: //return
+     processCommand();
+     break;
+   default:
+     processKey(keycode);
+     break;
+  }
+}
+
+function clearModifier(e) {
+//console.log("up");  
+  var keycode;
+  if (window.event) { //IE, ?
+    keycode = window.event.keyCode;
+  } else if (e) { //FF, ?
+    keycode = e.which;
+  }
+
+  switch(keycode) {
+   case 16: //shift
+     modifier.shift = false;
+     break;
+   case 17: //control
+     modifier.control = false;
+     break;
+   case 18: //alt
+     modifier.xalt = false;
+     break;
+   case 91: //command/windows
+   case 93:
+     modifier.command = false;
+     break;
+   default:
+     break;
+  }
+}
+
+
+function processKey(keycode) {
+	console.log(keycode);
+	//console.log(command);
+	
+	var text = new String();
+	
+	text = charFromKeyCode(keycode);
+	if(text == ""){
+	  alert("Unrecognized keycode: " + keycode);
+	}
+	
+	shell_variables.command += text;
+
+    //need to work on this
+    command = document.getElementById("command");
+    //console.log(command.innerHTML);
+    //document.remove(document.getElementById("cursor"));
+    //console.log("Yo: " + document.getElementById("command"));
+    textNode = document.createTextNode(text);
+	command = document.getElementById("command");
+    command.innerHTML = shell_variables.command + "<span id=\"cursor\" style=\"background: grey;\"> </span>";
+    
+    //make sure we keep focus at the cursor
+    window.location="#cursor";
+}
+
+function processCommand() {
+     //replace <
+     shell_variables.command = shell_variables.command.replace(/</gi,"&lt;");
+     //
+     var temp = document.getElementById("previous").innerHTML + shell_settings.prompt + shell_variables.command + "<br />";
+     document.getElementById("previous").innerHTML = temp;
+     //clear display
+     // - prompt, command, cursor to null
+     document.getElementById("prompt").innerHTML = "";
+     document.getElementById("command").innerHTML = "";
+     //document.getElementById("cursor").innerHTML = "";
+     
+     //search path for command
+     console.log("seraching for " + shell_variables.command + "..."); //this is safari specific?
+     
+     //new prompt
+     // - restore prompt and cursor
+     document.getElementById("prompt").innerHTML = shell_settings.prompt;
+     document.getElementById("command").innerHTML = "<span id=\"cursor\" style=\"background: grey;\"> </span>";
+     
+     shell_variables.command = "";
+     
+     //make sure we keep focus at the cursor
+     window.location="#cursor";
+}
+
+
+//Simplified for Macs with QWERTY at the least...
+// eventually use a 'login' to detect keyboard type
+// (a workable signature detection TBResearched)
+function charFromKeyCode (keycode) {
+	alphabet = "abcdefghijklmnopqrstuvwxyz";//65-90
+	
+	numbers = "0123456789";//48-57
+	numbers_cap = ")!@#$%^&*(";
+	
+	punctuation = ";=,-./`";//186-192
+	punctuation_cap = ":+<_>?~";
+	
+	morePunctuation = "[\\]'";//219-222
+	morePunctuation_cap = "{|}\"";
+	
+	var text = "";//default
+	
+	if (keycode >= 65 && keycode <= 90) {
+	  if (modifier.shift==true){
+	   text = alphabet[keycode-65].toUpperCase();
+	  } else {
+       text = alphabet[keycode-65];
+      }
+    }
+    
+    if (keycode >= 48 && keycode <= 57) {
+	  if (modifier.shift==true){
+	   text = numbers_cap[keycode-48];
+	  } else {
+       text = numbers[keycode-48];
+      }
+    }
+    
+    if (keycode >= 186 && keycode <= 192) {
+	  if (modifier.shift==true){
+	   text = punctuation_cap[keycode-186];
+	  } else {
+       text = punctuation[keycode-186];
+      }
+    }
+    
+    if (keycode >= 219 && keycode <= 222) {
+	  if (modifier.shift==true){
+	   text = morePunctuation_cap[keycode-219];
+	  } else {
+       text = morePunctuation[keycode-219];
+      }
+    }
+    
+    if (keycode == 32) {
+      text = " ";
+    }
+    
+    return text;
+}
+
+
+-->
+</script>
+
+</head>
+	<body onload="shellInit();">
+		<code style="color: white;">
+		<div id="display">
+			Welcome to *Server Name*<br />
+			<span class="prompt">mrkungfu$ </span><br />
+			<span class="prompt">mrkungfu$ ls</span><br />
+			<pre style="margin-top: 0px; margin-bottom: 0px;"><span class="prompt">Friends           iChats            RDC Connections   </span></pre>
+			<span class="prompt">mrkungfu$ </span><br />
+			<div id="previous"></div>
+			<div id="line"><pre style="margin-top: 0px; margin-bottom: 0px;"><span id="prompt">mrkungfu$ </span><span id="command"><span id="cursor" style="background: grey;"> </span></span></pre></div>
+  		</div>
+		</code>
+
+	</body>
+</html>
