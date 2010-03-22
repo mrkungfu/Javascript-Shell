@@ -256,6 +256,8 @@ console.log("<HTTPShell.Controller>");
 				//update previous display list with current line
 				HTTPShell.View.updatePrevious();
 				HTTPShell.Model.addCurrent2History();
+				//HTTPShell.Model.logHistory();
+				HTTPShell.Model.createArgList();
 
 				/* search path for command and execute it...
 				 */
@@ -526,20 +528,20 @@ console.log("<HTTPShell.Commands>");
 							{
 								if(root.childNodes[i].childNodes[j].nodeType == 1) subdirsize++;
 							}
-							HTTPShell.View.displayText("d--x--x--x " + subdirsize + " " + i + " (<" + root.childNodes[i].tagName + ">)");
+							HTTPShell.View.displayText("d--x--x--x " + subdirsize + "  " + i + " (<" + root.childNodes[i].tagName + ">...)");
 							break;
 						case 2:
-							HTTPShell.View.displayText("-rwx--x--x 1 " + root.childNodes[i].nodeName + "(" + i + ")");
+							HTTPShell.View.displayText("-rwx--x--x 1  " + root.childNodes[i].nodeName + "(" + i + ")");
 							break;
 						case 3:
-							//HTTPShell.View.displayText("-rwx--x--x 1 " + root.childNodes[i].nodeName + "(" + i + ")");
+							//HTTPShell.View.displayText("-rwx--x--x 1  " + root.childNodes[i].nodeName + "(" + i + ")");
 							break;
 						case 4:
 							break;
 					}
 				}
 				
-				HTTPShell.View.displayText("-rwx--x--x 1 innerHTML");
+				HTTPShell.View.displayText("-rwx--x--x 1  innerHTML");
 				
 				//list attributes
 				//for(i = 0; i < root.attributes.length; i++)
