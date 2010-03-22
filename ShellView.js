@@ -145,6 +145,16 @@ String.prototype.convert2HTML = function() {
 	return this.replace(/&/gi,"&amp;").replace(/</gi,"&lt;");
 }
 
+Object.prototype.clone = function() {
+  var newObj = (this instanceof Array) ? [] : {};
+  for (i in this) {
+    if (i == 'clone') continue;
+    if (this[i] && typeof this[i] == "object") {
+      newObj[i] = this[i].clone();
+    } else newObj[i] = this[i]
+  } return newObj;
+};
+
 if (typeof(HTTPShell) == 'undefined') {
 	HTTPShell = {
 		DEBUG: false,
@@ -165,10 +175,16 @@ console.log("<HTTPShell.Controller>");
 				//Setup Event Handlers
 				document.onkeydown = this.handleKey;
 				
+				//set functions for focus and blur actions based on window focus
 				window.onfocus=HTTPShell.View.focusCursor;
 				window.onblur=HTTPShell.View.blurCursor;
 				
-				//set focus
+				//hack to get background 
+				document.getElementById("previous").innerHTML = "<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>";
+				alert("Use 'ls' and 'cd' commands to browse the DOM.\n'more' can be used on innerHTML elements.\n\nApologies for the dialog, but it also\ngets around a bug.");
+				document.getElementById("previous").innerHTML = "";
+				
+				//set focus to the current window
 				window.focus();
 				console.log("</onload>");
 			},
@@ -214,7 +230,7 @@ console.log("<HTTPShell.Controller>");
 				}
 								
 				//returning false prevents futher events from processing(?)
-				//which should happend when backspace pressed or command is up (alt for windows?)
+				//which should happen when backspace pressed or command is up (alt for windows?)
 			  
 				console.log("</checkKeyCode>");
 			},
@@ -234,14 +250,26 @@ console.log("<HTTPShell.Controller>");
 			processCommand: function () {
 				console.log("<processCommand>");
 
-				//clear display
+				//clear display for the current line
 				HTTPShell.View.hideLine();
 				
-				//update previous
+				//update previous display list with current line
 				HTTPShell.View.updatePrevious();
+				HTTPShell.Model.addCurrent2History();
 
 				//search path for command and execute...
 				//console.log("seraching for " + shell_variables.command.data + "...");
+				HTTPShell.Model.logHistory();
+				HTTPShell.Model.createArgList();
+				
+				//HTTPShell.View.displayText("some text");
+				if(HTTPShell.Commands[HTTPShell.Model.command.argumentlist[0]])
+				{
+					HTTPShell.Commands[HTTPShell.Model.command.argumentlist[0]]();
+				} else {
+					if(HTTPShell.Model.command.argumentlist[0] != "")
+						HTTPShell.View.displayText("Command not found!");
+				}
 
 				//start again with a fresh command/line
 				HTTPShell.Model.clearLine();
@@ -297,6 +325,7 @@ console.log("<HTTPShell.View>");
 					tail.convert2HTML();
 				
 				window.location="#cursor";
+				document.body.scrollTop = document.body.scrollHeight;
 			},
 			
 			displayCommand: function () {
@@ -304,16 +333,20 @@ console.log("<HTTPShell.View>");
 			},
 			
 			blurCursor: function () {
-				document.getElementById("cursor").style.backgroundColor = "transparent";
-				document.getElementById("cursor").style.outlineColor = "grey";
-				document.getElementById("cursor").style.outlineStyle = "solid";
-				document.getElementById("cursor").style.outlineWidth = "1px";
+				if(document.getElementById("cursor")) {
+					document.getElementById("cursor").style.backgroundColor = "transparent";
+					document.getElementById("cursor").style.outlineColor = "grey";
+					document.getElementById("cursor").style.outlineStyle = "solid";
+					document.getElementById("cursor").style.outlineWidth = "1px";
+				}
 			},
 			
 			focusCursor: function () {
-				document.getElementById("cursor").style.backgroundColor = "grey";
-				document.getElementById("cursor").style.outlineColor = "transparent";
-				document.getElementById("cursor").style.outlineStyle = "none";
+				if(document.getElementById("cursor")) {
+					document.getElementById("cursor").style.backgroundColor = "grey";
+					document.getElementById("cursor").style.outlineColor = "transparent";
+					document.getElementById("cursor").style.outlineStyle = "none";
+				}
 			},
 
 			updatePrevious: function () {
@@ -326,6 +359,12 @@ console.log("<HTTPShell.View>");
 			hideLine: function () {
 				document.getElementById("prompt").innerHTML = "";
 				document.getElementById("command").innerHTML = "";
+			},
+			
+			displayText: function (tempText) {
+				document.getElementById("previous").innerHTML = document.getElementById("previous").innerHTML
+						+ tempText.convert2HTML()
+						+ "<br />";
 			},
 			
 			EOF: null
@@ -353,14 +392,21 @@ console.log("<HTTPShell.Model>");
 			//Global variables
 			// - history array
 			// - command
-			history: {},//array - last object is most recent
+			history: {
+				'data': {},
+				'size': 0
+			},//array - last object is most recent
 			
 			command: {
 				'data': "",
+				'argumentlist': {},
 				'cursor': 0
 			}, //current command line model
 			
-			pwd: "//", //DOM path?
+			pwd: {
+				'page': "",
+				'path': ""
+			}, //DOM path?
 
 			insertCharacterAtCursor: function (character) {
 				//
@@ -410,6 +456,29 @@ console.log("<HTTPShell.Model>");
 			tailText: function () {
 				return this.command.data.substring(this.command.cursor+1);
 			},
+
+			addCommand2History: function (acommand) {
+				this.history.data[this.history.size] = acommand.clone();
+				this.history.size++;
+			},
+
+			addCurrent2History: function () {
+				this.addCommand2History(this.command.data)
+				//console.log(this.history.data)
+				//console.log(this.history.size)
+			},
+
+			logHistory: function () {
+				for(i = 0; i < this.history.size % 5; i++)
+				{
+					console.log(this.history.data[i]);
+				}
+			},
+			createArgList: function () {
+				var fullCommand = this.command.data;
+				this.command.argumentlist = fullCommand.split(" ");
+				console.log(this.command.argumentlist);
+			},
 			
 			writeCookie: function () {
 				//
@@ -423,6 +492,104 @@ console.log("<HTTPShell.Model>");
 		};
 	}();
 console.log("</HTTPShell.Model>");
+}
+
+
+if (typeof(HTTPShell.Commands) == 'undefined') {
+console.log("<HTTPShell.Commands>");
+	HTTPShell.Commands = function() {
+		return {
+			
+			ls: function () {
+				var root;
+				var alength;
+				
+				if (HTTPShell.Model.pwd.page == "")
+				{
+					HTTPShell.Model.pwd.page = window;
+				}
+				if (HTTPShell.Model.pwd.path == "")
+				{
+					HTTPShell.Model.pwd.path = HTTPShell.Model.pwd.page.document;
+				}
+				
+				root = HTTPShell.Model.pwd.path;//document.body.childNodes[1].childNodes[1];
+				alength = root.childNodes.length;
+				
+				HTTPShell.View.displayText("Total " + alength);
+				
+				for(i = 0; i < alength; i++)
+				{
+					switch(root.childNodes[i].nodeType)
+					{
+						case 1:
+							var subdirsize = 0;
+							for(j = 0; j < root.childNodes[i].childNodes.length; j++)
+							{
+								if(root.childNodes[i].childNodes[j].nodeType == 1) subdirsize++;
+							}
+							HTTPShell.View.displayText("d--x--x--x " + subdirsize + " " + i + " (<" + root.childNodes[i].tagName + ">)");
+							break;
+						case 2:
+							HTTPShell.View.displayText("-rwx--x--x 1 " + root.childNodes[i].nodeName + "(" + i + ")");
+							break;
+						case 3:
+							//HTTPShell.View.displayText("-rwx--x--x 1 " + root.childNodes[i].nodeName + "(" + i + ")");
+							break;
+						case 4:
+							break;
+					}
+				}
+				
+				HTTPShell.View.displayText("-rwx--x--x 1 innerHTML");
+				
+				//list attributes
+				//for(i = 0; i < root.attributes.length; i++)
+				//{
+				//	HTTPShell.View.displayText("-rwx--x--x 1 " + root.addtribues[i] + "(" + i + ")");
+				//}
+				
+			},
+			
+			cd: function () {
+				var destination = HTTPShell.Model.command.argumentlist[1];
+				
+				//this needs to be replaced by a real path parser
+				//also need to define a realistic path format...
+				switch(destination)
+				{
+					case "..":
+						HTTPShell.Model.pwd.path = HTTPShell.Model.pwd.path.parentNode;
+						break;
+					case ".":
+						break;
+					case undefined:
+						HTTPShell.Model.pwd.path = HTTPShell.Model.pwd.page.document;
+						break;
+					default:
+						if (!isNaN(parseFloat(destination)) && isFinite(destination) && (HTTPShell.Model.pwd.path.childNodes[destination] != undefined))
+							HTTPShell.Model.pwd.path = HTTPShell.Model.pwd.path.childNodes[destination];
+						else
+							HTTPShell.View.displayText("Directory not found!");
+				}
+			},
+			
+			cdd: function () {
+				HTTPShell.Model.pwd.path = HTTPShell.Model.pwd.path.parentNode;
+			},
+			
+			more: function () {
+				var filename = HTTPShell.Model.command.argumentlist[1];
+				if(filename == "innerHTML") {
+					var htmltext = new String(HTTPShell.Model.pwd.path.innerHTML);
+					HTTPShell.View.displayText(htmltext);
+				}
+			},
+			
+			EOF: null
+		};
+	}();
+console.log("</HTTPShell.Commands>");
 }
 
 //document.onkeydown = HTTPShell.Controller.checkKeycode;
