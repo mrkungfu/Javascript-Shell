@@ -257,12 +257,10 @@ console.log("<HTTPShell.Controller>");
 				HTTPShell.View.updatePrevious();
 				HTTPShell.Model.addCurrent2History();
 
-				//search path for command and execute...
-				//console.log("seraching for " + shell_variables.command.data + "...");
-				HTTPShell.Model.logHistory();
-				HTTPShell.Model.createArgList();
+				/* search path for command and execute it...
+				 */
+				//console.log("seraching for " + shell_variables.command.argumentlist[0] + "...");
 				
-				//HTTPShell.View.displayText("some text");
 				if(HTTPShell.Commands[HTTPShell.Model.command.argumentlist[0]])
 				{
 					HTTPShell.Commands[HTTPShell.Model.command.argumentlist[0]]();
